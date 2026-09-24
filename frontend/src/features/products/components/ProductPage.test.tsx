@@ -33,6 +33,13 @@ describe('ProductPage', () => {
     expect(add).toBeDisabled();
   });
 
+  it('uses the singular label for the last unit', () => {
+    renderWithStore(<ProductPage onBuy={jest.fn()} onRetry={jest.fn()} />, {
+      products: { items: [aProduct({ availableUnits: 1 })] },
+    });
+    expect(screen.getByText('¡Última unidad!')).toBeInTheDocument();
+  });
+
   it('disables buying sold out products', () => {
     renderWithStore(<ProductPage onBuy={jest.fn()} onRetry={jest.fn()} />, {
       products: { items: [aProduct({ availableUnits: 0 })] },
