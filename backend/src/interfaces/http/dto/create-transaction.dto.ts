@@ -1,0 +1,151 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  Equals,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { MAX_INSTALLMENTS } from '../../../application/use-cases/create-transaction';
+import { MAX_QUANTITY } from '../../../domain/validation';
+
+export class CustomerDto {
+  @ApiProperty({ example: 'ana@example.com' })
+  @IsEmail()
+  @MaxLength(120)
+  email: string;
+
+  @ApiProperty({ example: 'Ana Gomez' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  fullName: string;
+
+  @ApiProperty({ example: '3001234567' })
+  @Matches(/^\+?\d{7,15}$/)
+  phone: string;
+}
+
+export class ShippingDto {
+  @ApiProperty({ example: 'Ana Gomez' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  recipient: string;
+
+  @ApiProperty({ example: '3001234567' })
+  @Matches(/^\+?\d{7,15}$/)
+  phone: string;
+
+  @ApiProperty({ example: 'Calle 10 # 43-12' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  addressLine: string;
+
+  @ApiProperty({ example: 'Medellin' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  city: string;
+
+  @ApiProperty({ example: 'Antioquia' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  region: string;
+
+  @ApiProperty({ example: '050021' })
+  @Matches(/^\d{4,10}$/)
+  postalCode: string;
+}
+
+export class CardDto {
+  @ApiProperty({
+    description:
+      'Single-use token returned by the payment gateway tokenization endpoint',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  token: string;
+
+  @ApiProperty({ enum: ['VISA', 'MASTERCARD', 'UNKNOWN'] })
+  @IsIn(['VISA', 'MASTERCARD', 'UNKNOWN'])
+  brand: 'VISA' | 'MASTERCARD' | 'UNKNOWN';
+
+  @ApiProperty({ example: '4242' })
+  @Matches(/^\d{4}$/)
+  last4: string;
+
+  @ApiProperty({ example: 1, minimum: 1, maximum: MAX_INSTALLMENTS })
+  @IsInt()
+  @Min(1)
+  @Max(MAX_INSTALLMENTS)
+  installments: number;
+}
+
+export class CreateTransactionDto {
+  @ApiProperty({ example: 'prod-headphones' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  productId: string;
+
+  @ApiProperty({ example: 1, minimum: 1, maximum: MAX_QUANTITY })
+  @IsInt()
+  @Min(1)
+  @Max(MAX_QUANTITY)
+  quantity: number;
+
+  @ApiProperty({ type: CustomerDto })
+  @ValidateNested()
+  @Type(() => CustomerDto)
+  customer: CustomerDto;
+
+  @ApiProperty({ type: ShippingDto })
+  @ValidateNested()
+  @Type(() => ShippingDto)
+  shipping: ShippingDto;
+
+  @ApiProperty({ type: CardDto })
+  @ValidateNested()
+  @Type(() => CardDto)
+  card: CardDto;
+
+  @ApiProperty({
+    example: true,
+    description: 'Customer accepted the payment terms',
+  })
+  @Equals(true)
+  acceptedTerms: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: 'Customer accepted the personal data policy',
+  })
+  @Equals(true)
+  acceptedPersonalData: boolean;
+}
+
+export class QuoteQueryDto {
+  @ApiProperty({ example: 'prod-headphones' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  productId: string;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_QUANTITY)
+  quantity: number;
+}
