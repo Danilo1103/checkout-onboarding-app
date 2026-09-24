@@ -1,6 +1,9 @@
 .backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--vv-top, 0);
+  left: 0;
+  right: 0;
+  height: var(--vv-height, 100dvh);
   z-index: 20;
   display: flex;
   flex-direction: column;

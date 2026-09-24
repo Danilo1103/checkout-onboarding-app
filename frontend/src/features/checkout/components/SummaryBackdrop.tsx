@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { Button } from '../../../components/ui/Button';
 import { CardBrandLogo } from '../../../components/ui/CardBrandLogo';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { SmartImage } from '../../../components/ui/SmartImage';
+import { useLockedViewport } from '../../../components/ui/useLockedViewport';
 import { formatCOP } from '../../../lib/money';
 import { editDetails, loadSummary, pay, setAcceptedTerms } from '../checkoutSlice';
 import { StepIndicator } from './StepIndicator';
@@ -19,13 +20,15 @@ export function SummaryBackdrop() {
   const product = useAppSelector((state) => state.products.items.find((p) => p.id === checkout.productId));
   const { quote, legal, card, shipping, acceptedTerms, status, error } = checkout;
   const paying = status === 'loading';
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useLockedViewport(backdropRef);
 
   useEffect(() => {
     void dispatch(loadSummary());
   }, [dispatch]);
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="summary-title">
+    <div ref={backdropRef} className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="summary-title">
       <div className={styles.backLayer}>
         {product && <SmartImage src={product.imageUrl} alt="" sizes="72px" className={styles.thumb} />}
         <div>
