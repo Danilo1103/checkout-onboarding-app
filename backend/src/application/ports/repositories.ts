@@ -16,6 +16,8 @@ export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
   /** Reserves units only if enough stock is available (atomic conditional write). */
   reserve(id: string, quantity: number): Promise<Result<void, DomainError>>;
+  /** Gives back units reserved by a transaction that could not be created. */
+  release(id: string, quantity: number): Promise<void>;
 }
 
 export interface CustomerRepository {

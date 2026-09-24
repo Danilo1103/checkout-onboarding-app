@@ -85,6 +85,14 @@ export class InMemoryProducts implements ProductRepository {
     });
     return ok(undefined);
   }
+
+  async release(id: string, quantity: number): Promise<void> {
+    const product = this.db.products.get(id)!;
+    this.db.products.set(id, {
+      ...product,
+      reserved: product.reserved - quantity,
+    });
+  }
 }
 
 export class InMemoryCustomers implements CustomerRepository {

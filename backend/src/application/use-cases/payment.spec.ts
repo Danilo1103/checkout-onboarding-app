@@ -36,8 +36,8 @@ const anInput = (
     last4: '4242',
     installments: 1,
   },
-  acceptanceToken: 'acc-token',
-  personalDataAuthToken: 'personal-token',
+  acceptedTerms: true,
+  acceptedPersonalData: true,
   ...overrides,
 });
 
@@ -114,13 +114,58 @@ describe('payment flow', () => {
       expect(db.deliveries.size).toBe(0);
     });
 
+    it('releases the reservation when the transaction cannot be stored', async () => {
+      const failing = new InMemoryTransactions(db);
+      jest
+        .spyOn(failing, 'create')
+        .mockRejectedValueOnce(new Error('database unavailable'));
+      const products = new InMemoryProducts(db);
+      const useCase = new CreateTransaction(
+        new GetCheckoutQuote(products, fees),
+        new UpsertCustomer(new InMemoryCustomers(db)),
+        products,
+        failing,
+        gateway,
+        new SettleTransaction(
+          new InMemorySettlements(db),
+          new SequentialIds(),
+          new FixedClock(),
+        ),
+        new SequentialIds(),
+        new FixedClock(),
+      );
+
+      await expect(useCase.execute(anInput({ quantity: 2 }))).rejects.toThrow(
+        'database unavailable',
+      );
+      expect(product()).toMatchObject({ stock: 10, reserved: 0 });
+      expect(gateway.charges).toHaveLength(0);
+    });
+
+    it('requests fresh acceptance tokens for each charge', async () => {
+      await createTransaction.execute(anInput());
+      expect(gateway.charges[0]).toMatchObject({
+        acceptanceToken: 'acc-token',
+        personalDataAuthToken: 'personal-token',
+      });
+    });
+
+    it('marks the transaction as ERROR when acceptance tokens cannot be obtained', async () => {
+      gateway.acceptance = err(paymentGatewayError('Gateway unavailable'));
+      const result = await createTransaction.execute(anInput());
+
+      expect(result).toMatchObject({ ok: true, value: { status: 'ERROR' } });
+      expect(gateway.charges).toHaveLength(0);
+      expect(product()).toMatchObject({ stock: 10, reserved: 0 });
+    });
+
     it('rejects invalid requests with every validation error', async () => {
       const result = await createTransaction.execute(
         anInput({
           shipping: aShipping({ city: '' }),
           card: { token: ' ', brand: 'VISA', last4: '42', installments: 0 },
-          acceptanceToken: '',
-          personalDataAuthToken: '',
+          acceptedTerms: false,
+          acceptedPersonalData: false,
         }),
       );
       expect(result.ok).toBe(false);
@@ -130,8 +175,8 @@ describe('payment flow', () => {
           'card.last4 must contain 4 digits',
           'card.token is required',
           'card.installments must be an integer between 1 and 36',
-          'acceptanceToken is required',
-          'personalDataAuthToken is required',
+          'acceptedTerms must be true',
+          'acceptedPersonalData must be true',
         ]);
       }
       expect(gateway.charges).toHaveLength(0);

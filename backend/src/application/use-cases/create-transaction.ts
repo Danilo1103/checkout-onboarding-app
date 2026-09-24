@@ -27,8 +27,9 @@ export interface CreateTransactionInput {
     readonly last4: string;
     readonly installments: number;
   };
-  readonly acceptanceToken: string;
-  readonly personalDataAuthToken: string;
+  /** The customer accepted the gateway terms and the personal data policy shown in the UI. */
+  readonly acceptedTerms: boolean;
+  readonly acceptedPersonalData: boolean;
 }
 
 interface Context {
@@ -92,7 +93,13 @@ export class CreateTransaction {
       createdAt: now,
       updatedAt: now,
     };
-    await this.transactions.create(transaction);
+    try {
+      await this.transactions.create(transaction);
+    } catch (error) {
+      // Never leave units reserved for a transaction that was not stored.
+      await this.products.release(input.productId, input.quantity);
+      throw error;
+    }
     return transaction;
   }
 
@@ -100,6 +107,10 @@ export class CreateTransaction {
     transaction: Transaction,
     input: CreateTransactionInput,
   ): Promise<Transaction> {
+    // Acceptance tokens are single-use, so a fresh pair is requested for every charge.
+    const acceptance = await this.gateway.getAcceptanceTokens();
+    if (!acceptance.ok) return this.settle.execute(transaction, 'ERROR');
+
     const charged = await this.gateway.chargeCard({
       reference: transaction.reference,
       amountInCents: transaction.amounts.totalInCents,
@@ -107,8 +118,8 @@ export class CreateTransaction {
       customerEmail: transaction.customerEmail,
       cardToken: input.card.token,
       installments: input.card.installments,
-      acceptanceToken: input.acceptanceToken,
-      personalDataAuthToken: input.personalDataAuthToken,
+      acceptanceToken: acceptance.value.acceptanceToken,
+      personalDataAuthToken: acceptance.value.personalDataAuthToken,
     });
 
     if (!charged.ok) return this.settle.execute(transaction, 'ERROR');
@@ -141,10 +152,9 @@ const validateInput = (
       `card.installments must be an integer between 1 and ${MAX_INSTALLMENTS}`,
     );
   }
-  if (!input.acceptanceToken?.trim())
-    errors.push('acceptanceToken is required');
-  if (!input.personalDataAuthToken?.trim())
-    errors.push('personalDataAuthToken is required');
+  if (input.acceptedTerms !== true) errors.push('acceptedTerms must be true');
+  if (input.acceptedPersonalData !== true)
+    errors.push('acceptedPersonalData must be true');
   return errors.length === 0
     ? ok(input)
     : err(validationError('Invalid transaction request', errors));
