@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import styles from './Modal.module.css';
+import { useLockedViewport } from './useLockedViewport';
 
 interface ModalProps {
   title: string;
@@ -12,7 +13,9 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabi
 
 /** Accessible dialog: bottom sheet on phones, right side sheet on larger screens. */
 export function Modal({ title, onClose, children, footer }: ModalProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useLockedViewport(overlayRef);
   // Latest onClose without re-running the focus effect on every render.
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -24,7 +27,6 @@ export function Modal({ title, onClose, children, footer }: ModalProps) {
     const dialog = dialogRef.current!;
     // Focus the dialog itself so phones do not pop the keyboard open immediately.
     dialog.focus();
-    document.body.style.overflow = 'hidden';
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -46,13 +48,12 @@ export function Modal({ title, onClose, children, footer }: ModalProps) {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
       previous?.focus();
     };
   }, []);
 
   return (
-    <div className={styles.overlay} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div ref={overlayRef} className={styles.overlay} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
         <header className={styles.header}>
           <h2 id="modal-title">{title}</h2>

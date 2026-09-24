@@ -23,9 +23,12 @@ import { UpsertCustomer } from './upsert-customer';
 
 const fees = { baseFeeInCents: 500_000, deliveryFeeInCents: 1_000_000 };
 
+const KEY = '0b6f4a1e-6a7c-4d2b-9a55-3f0f7c2d9e11';
+
 const anInput = (
   overrides: Partial<CreateTransactionInput> = {},
 ): CreateTransactionInput => ({
+  idempotencyKey: KEY,
   productId: 'p-1',
   quantity: 1,
   customer: aCustomer(),
@@ -66,7 +69,6 @@ describe('payment flow', () => {
       transactions,
       gateway,
       settle,
-      ids,
       clock,
     );
     syncTransaction = new SyncTransaction(transactions, gateway, settle);
@@ -83,12 +85,12 @@ describe('payment flow', () => {
         value: {
           status: 'PENDING',
           gatewayTransactionId: 'gw-1',
-          reference: 'TX-id-1',
+          reference: `TX-${KEY}`,
         },
       });
       expect(product()).toMatchObject({ stock: 10, reserved: 2 });
       expect(gateway.charges[0]).toMatchObject({
-        reference: 'TX-id-1',
+        reference: `TX-${KEY}`,
         amountInCents: 51_500_000,
         currency: 'COP',
         cardToken: 'tok_test_123',
@@ -131,7 +133,6 @@ describe('payment flow', () => {
           new SequentialIds(),
           new FixedClock(),
         ),
-        new SequentialIds(),
         new FixedClock(),
       );
 
@@ -139,6 +140,46 @@ describe('payment flow', () => {
         'database unavailable',
       );
       expect(product()).toMatchObject({ stock: 10, reserved: 0 });
+      expect(gateway.charges).toHaveLength(0);
+    });
+
+    it('is idempotent: repeating the key returns the same transaction without charging again', async () => {
+      const first = await createTransaction.execute(anInput());
+      const second = await createTransaction.execute(anInput());
+
+      expect(first.ok && second.ok && second.value.id).toBe(KEY);
+      expect(gateway.charges).toHaveLength(1);
+      expect(product()).toMatchObject({ stock: 10, reserved: 1 });
+    });
+
+    it('releases its reservation when a concurrent request with the same key wins', async () => {
+      const transactions = new InMemoryTransactions(db);
+      const winner = { id: KEY, status: 'PENDING', productId: 'p-1' } as never;
+      jest
+        .spyOn(transactions, 'findById')
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(winner);
+      jest.spyOn(transactions, 'create').mockResolvedValueOnce(false);
+      const products = new InMemoryProducts(db);
+      const racing = new CreateTransaction(
+        new GetCheckoutQuote(products, fees),
+        new UpsertCustomer(new InMemoryCustomers(db)),
+        products,
+        transactions,
+        gateway,
+        new SettleTransaction(
+          new InMemorySettlements(db),
+          new SequentialIds(),
+          new FixedClock(),
+        ),
+        new FixedClock(),
+      );
+
+      expect(await racing.execute(anInput())).toEqual({
+        ok: true,
+        value: winner,
+      });
+      expect(product()).toMatchObject({ reserved: 0 });
       expect(gateway.charges).toHaveLength(0);
     });
 
@@ -163,6 +204,7 @@ describe('payment flow', () => {
       const result = await createTransaction.execute(
         anInput({
           shipping: aShipping({ city: '' }),
+          idempotencyKey: 'not-a-uuid',
           card: { token: ' ', brand: 'VISA', last4: '42', installments: 0 },
           acceptedTerms: false,
           acceptedPersonalData: false,
@@ -173,6 +215,7 @@ describe('payment flow', () => {
         expect(result.error.details).toEqual([
           'shipping.city is required',
           'card.last4 must contain 4 digits',
+          'idempotencyKey must be a UUID',
           'card.token is required',
           'card.installments must be an integer between 1 and 36',
           'acceptedTerms must be true',
@@ -222,7 +265,6 @@ describe('payment flow', () => {
           new SequentialIds(),
           new FixedClock(),
         ),
-        new SequentialIds(),
         new FixedClock(),
       );
       expect(await racing.execute(anInput())).toMatchObject({

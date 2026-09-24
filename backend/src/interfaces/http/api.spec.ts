@@ -35,7 +35,9 @@ const config = loadConfig({
   PAYMENT_INTEGRITY_SECRET: 'int',
 });
 
+let keyCounter = 0;
 const validBody = () => ({
+  idempotencyKey: `6f1c2f5e-7c43-4a4e-9a3e-${String((keyCounter += 1)).padStart(12, '0')}`,
   productId: 'p-1',
   quantity: 1,
   customer: aCustomer(),
@@ -194,6 +196,21 @@ describe('HTTP API', () => {
       .send(validBody())
       .expect(409);
     expect(res.body).toMatchObject({ error: 'OUT_OF_STOCK' });
+  });
+
+  it('returns the same transaction when the payment is retried with the same key', async () => {
+    const body = validBody();
+    const first = await request(app.getHttpServer())
+      .post('/api/transactions')
+      .send(body)
+      .expect(201);
+    const retry = await request(app.getHttpServer())
+      .post('/api/transactions')
+      .send(body)
+      .expect(201);
+    expect(retry.body.id).toBe(first.body.id);
+    expect(first.body.id).toBe(body.idempotencyKey);
+    expect(gateway.charges).toHaveLength(1);
   });
 
   it('validates ids and reports unknown transactions and deliveries', async () => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { Button } from '../../../components/ui/Button';
+import { SmartImage } from '../../../components/ui/SmartImage';
 import { formatCOP } from '../../../lib/money';
 import { pollTransaction } from '../checkoutSlice';
 import { StepIndicator } from './StepIndicator';
@@ -19,15 +20,41 @@ const COPY = {
 
 export function StatusScreen({ onFinish }: StatusScreenProps) {
   const dispatch = useAppDispatch();
-  const transaction = useAppSelector((state) => state.checkout.transaction)!;
+  const transaction = useAppSelector((state) => state.checkout.transaction);
+  const paymentId = useAppSelector((state) => state.checkout.paymentId);
   const pollError = useAppSelector((state) => state.checkout.error);
-  const pending = transaction.status === 'PENDING';
+  const productId = useAppSelector((state) => transaction?.productId ?? state.checkout.productId);
+  const product = useAppSelector((state) => state.products.items.find((p) => p.id === productId));
+  // After a reload during payment only the payment id is known until the first poll answers.
+  const id = transaction?.id ?? paymentId!;
+  const pending = !transaction || transaction.status === 'PENDING';
 
   useEffect(() => {
-    if (pending) void dispatch(pollTransaction(transaction.id));
+    if (pending) void dispatch(pollTransaction(id));
     // Poll once per transaction; the thunk keeps polling until a final status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, transaction.id]);
+  }, [dispatch, id]);
+
+  if (!transaction && pollError) {
+    return (
+      <section className={styles.screen} aria-live="polite">
+        <div className={styles.panel}>
+          <StepIndicator current={3} outcome="failed" />
+          <span className={[styles.icon, styles.danger].join(' ')} aria-hidden="true">
+            !
+          </span>
+          <h1 className={styles.title}>No pudimos confirmar el pago</h1>
+          <p className={styles.text}>{pollError}</p>
+          <Button block variant="secondary" onClick={() => void dispatch(pollTransaction(id))}>
+            Consultar de nuevo
+          </Button>
+          <Button block onClick={onFinish}>
+            Volver a la tienda
+          </Button>
+        </div>
+      </section>
+    );
+  }
 
   if (pending) {
     return (
@@ -38,7 +65,7 @@ export function StatusScreen({ onFinish }: StatusScreenProps) {
           <h1 className={styles.title}>Procesando tu pago</h1>
           <p className={styles.text}>Estamos confirmando con tu banco. No cierres esta ventana.</p>
           {pollError && (
-            <Button variant="secondary" onClick={() => void dispatch(pollTransaction(transaction.id))}>
+            <Button variant="secondary" onClick={() => void dispatch(pollTransaction(id))}>
               Consultar de nuevo
             </Button>
           )}
@@ -57,7 +84,17 @@ export function StatusScreen({ onFinish }: StatusScreenProps) {
         </span>
         <h1 className={styles.title}>{copy.title}</h1>
         <p className={styles.text}>{copy.text}</p>
-        <dl className={styles.receipt}>
+        <div className={styles.receipt}>
+          <div className={styles.product}>
+            {product && <SmartImage src={product.imageUrl} alt="" sizes="64px" className={styles.thumb} />}
+            <div className={styles.productInfo}>
+              <p className={styles.productName}>{product?.name ?? 'Producto'}</p>
+              <p className={styles.productQty}>
+                {transaction.quantity} × {formatCOP(transaction.amounts.productInCents / transaction.quantity)}
+              </p>
+            </div>
+          </div>
+          <dl className={styles.lines}>
           <div>
             <dt>Referencia</dt>
             <dd>{transaction.reference}</dd>
@@ -72,7 +109,8 @@ export function StatusScreen({ onFinish }: StatusScreenProps) {
               {transaction.card.brand} •••• {transaction.card.last4}
             </dd>
           </div>
-        </dl>
+          </dl>
+        </div>
         <Button block onClick={onFinish}>
           Volver a la tienda
         </Button>

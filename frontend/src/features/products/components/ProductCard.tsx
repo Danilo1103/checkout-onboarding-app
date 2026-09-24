@@ -16,6 +16,7 @@ interface ProductCardProps {
 
 const stockLabel = (units: number) => {
   if (units === 0) return { text: 'Agotado', tone: styles.out };
+  if (units === 1) return { text: '¡Última unidad!', tone: styles.low };
   if (units <= 3) return { text: `¡Últimas ${units} unidades!`, tone: styles.low };
   return { text: `${units} disponibles`, tone: styles.ok };
 };

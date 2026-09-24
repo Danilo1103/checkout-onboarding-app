@@ -8,7 +8,7 @@ A customer picks a product, enters card and delivery data, reviews the summary, 
 | **Live app** | https://d1ua32kt9ebezp.cloudfront.net |
 | **API docs (Swagger)** | https://d1ua32kt9ebezp.cloudfront.net/api/docs |
 | **OpenAPI file (Postman importable)** | [`docs/openapi.json`](docs/openapi.json) |
-| **Plan and decisions** | [`docs/PLAN.md`](docs/PLAN.md), [`docs/decisions`](docs/decisions) |
+| **Plan and decisions** | [`docs/PLAN.md`](docs/PLAN.md), [`docs/decisions`](docs/decisions) (5 decision records) |
 
 Test cards (sandbox): `4242 4242 4242 4242` approved, `4111 1111 1111 1111` declined. Any future expiry date and a 3-digit CVC.
 
@@ -24,9 +24,9 @@ Test cards (sandbox): `4242 4242 4242 4242` approved, `4111 1111 1111 1111` decl
 2. **Pay with credit card** – a modal (side sheet on desktop, bottom sheet on phones) collects card and delivery data. The card number is validated with Luhn, VISA and Mastercard are detected with their logos, and the expiry and CVC are checked.
 3. **Summary** – a Material backdrop shows product amount, base fee, delivery fee and total. Amounts are always computed by the backend.
 4. **Payment** – the backend reserves stock, creates the transaction as `PENDING`, charges the card through the gateway and polls until a final status. Approved payments consume the stock and assign the delivery; declined or failed payments release it.
-5. **Final status** – approved, declined or error, then back to the product page with fresh stock.
+5. **Final status** – approved, declined or error, with the purchased product, quantity and total, then back to the product page with fresh stock.
 
-Progress survives a page refresh. Card data and the card token are never persisted.
+Progress survives a page refresh. Card data and the card token are never persisted: reloading before paying asks for the card again, while reloading after pressing *Pay* goes straight to the result of that payment.
 
 ---
 
@@ -96,7 +96,7 @@ Base path: `/api`. Full contract in Swagger (`/api/docs`) and [`docs/openapi.jso
 | GET | `/api/checkout/quote?productId&quantity` | Amounts computed on the server |
 | GET | `/api/checkout/acceptance` | Links to the documents the customer must accept |
 | POST | `/api/customers` | Create or update a customer by email |
-| POST | `/api/transactions` | Reserve stock, create `PENDING` transaction, charge the card token |
+| POST | `/api/transactions` | Reserve stock, create `PENDING` transaction, charge the card token. Idempotent by `idempotencyKey` |
 | GET | `/api/transactions/:id` | Status, refreshed from the gateway while `PENDING` |
 | GET | `/api/deliveries/:transactionId` | Delivery assigned to an approved transaction |
 | GET | `/api/health` | Health check |
@@ -124,6 +124,8 @@ Validation rejects unknown fields (`whitelist` + `forbidNonWhitelisted`), wrong 
 
 Settlement is idempotent and concurrent buyers cannot oversell. See [`docs/decisions/004-stock-reservation.md`](docs/decisions/004-stock-reservation.md).
 
+**Idempotent payments** – before paying, the SPA generates a UUID, stores it and sends it as `idempotencyKey`. The backend uses it as the transaction id and creates it with a conditional write, so a double click, a retry after a network error or a reload during payment returns the same transaction instead of charging twice. After a reload the SPA polls that id; if the request never reached the server, it reports that no charge was made.
+
 ---
 
 ## Security
@@ -135,7 +137,7 @@ Settlement is idempotent and concurrent buyers cannot oversell. See [`docs/decis
 - **Security headers** (CloudFront and Helmet): strict Content-Security-Policy, HSTS with preload, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
 - **Private S3 bucket** with Origin Access Control and a TLS-only bucket policy.
 - **Rate limiting** in API Gateway and in the API (stricter on `POST /transactions`).
-- **Input validation** on every endpoint, amounts computed on the server, idempotent settlement.
+- **Input validation** on every endpoint, amounts computed on the server, idempotent payment creation and settlement.
 - **Least privilege IAM**: the Lambda can only access its four tables and its secrets parameter.
 
 ---
@@ -146,8 +148,8 @@ Jest in every package. Coverage thresholds are enforced at 80% (the test run fai
 
 | Package | Tests | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|---|
-| Backend | 82 | 99.81% | 92.74% | 99.20% | 100% |
-| Frontend | 62 | 98.37% | 96.17% | 98.43% | 99.55% |
+| Backend | 85 | 99.81% | 92.68% | 99.21% | 100% |
+| Frontend | 73 | 98.26% | 96.77% | 97.90% | 99.42% |
 | Infrastructure (CDK) | 9 | 100% | 100% | 100% | 100% |
 
 ```bash
@@ -157,11 +159,11 @@ pnpm --filter backend test:e2e
 
 What is covered:
 
-- **Backend** – domain rules, every use case with in-memory adapters (approved, declined, error, out of stock, concurrent reservation, idempotent settlement), DynamoDB repositories with a mocked SDK, the payment gateway adapter with mocked HTTP, the full HTTP API with Supertest (validation, error codes, security headers, Swagger) and the Lambda handler.
-- **Frontend** – card and delivery validation, API client and tokenization, the Redux store (flow, polling, persistence without the card token), every screen with React Testing Library and one test for the full checkout.
+- **Backend** – domain rules, every use case with in-memory adapters (approved, declined, error, out of stock, concurrent reservation, idempotent payments and settlement), DynamoDB repositories with a mocked SDK, the payment gateway adapter with mocked HTTP, the full HTTP API with Supertest (validation, error codes, security headers, Swagger) and the Lambda handler.
+- **Frontend** – card and delivery validation, API client and tokenization, the Redux store (flow, polling, idempotency key, persistence without the card token, resuming a payment after a reload), mobile viewport handling, every screen with React Testing Library and one test for the full checkout.
 - **Infrastructure** – CDK assertions for the private bucket, CSP and headers, IAM scope, throttling, SPA routing that keeps real API errors, and that no private key ends up in the template.
 
-The flow was also verified end to end against the gateway sandbox (approved, declined and out of stock), locally and on the deployed app, in Chrome at 375×667, 820×1180 and 1440×900.
+The flow was also verified end to end against the gateway sandbox (approved, declined, out of stock and reloading during payment), locally and on the deployed app, in Chrome at 375×667, 820×1180 and 1440×900, and on Safari for iPhone.
 
 ---
 
@@ -216,5 +218,5 @@ I used an AI coding assistant from the terminal throughout the project, followin
 
 - **Planning** – analysed the test requirements and the gateway documentation with the assistant, compared options (PostgreSQL vs DynamoDB, where to tokenize the card, how to keep stock consistent) and wrote the plan and decision records in [`docs/`](docs) before writing code. The final decisions were mine.
 - **Implementation** – the assistant generated the scaffolding, adapters, tests and infrastructure stage by stage, one branch and pull request per stage.
-- **Verification** – every stage ended with tests and coverage in green, plus manual checks against the real sandbox and in the browser. Those checks caught issues that unit tests with mocks could not: single-use acceptance tokens, stock left reserved when storing a transaction failed, DTO instances that DynamoDB refused to store, and a focus loop in the modal.
+- **Verification** – every stage ended with tests and coverage in green, plus manual checks against the real sandbox, in the browser and on my phone. Those checks caught issues that unit tests with mocks could not: single-use acceptance tokens, stock left reserved when storing a transaction failed, DTO instances that DynamoDB refused to store, a focus loop in the modal, API 404s rewritten by CloudFront, the mobile keyboard hiding the form, and a reload during payment sending the customer back to the form.
 - **Review** – I reviewed the security of card handling, the validations, the stock rules and the UI decisions (for example the side sheet on desktop and the progress steps) before merging.

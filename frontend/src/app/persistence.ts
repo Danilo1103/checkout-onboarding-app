@@ -11,6 +11,7 @@ const PERSISTED_KEYS = [
   'card',
   'acceptedTerms',
   'transaction',
+  'paymentId',
 ] as const;
 
 type PersistedCheckout = Pick<CheckoutState, (typeof PERSISTED_KEYS)[number]>;
@@ -37,6 +38,10 @@ export const loadCheckout = (storage: Storage = window.localStorage): CheckoutSt
     if (!raw) return initialCheckoutState;
     const saved = JSON.parse(raw) as Partial<PersistedCheckout>;
     const restored: CheckoutState = { ...initialCheckoutState, ...saved };
+    if (restored.step === 'summary' && restored.paymentId) {
+      // Reloaded while paying: follow that payment instead of asking for the card again.
+      return { ...restored, step: 'status' };
+    }
     if (restored.step === 'summary') {
       return {
         ...restored,
@@ -45,7 +50,9 @@ export const loadCheckout = (storage: Storage = window.localStorage): CheckoutSt
         notice: 'Por seguridad, vuelve a ingresar los datos de tu tarjeta.',
       };
     }
-    if (restored.step === 'status' && !restored.transaction) return { ...restored, step: 'product' };
+    if (restored.step === 'status' && !restored.transaction && !restored.paymentId) {
+      return { ...restored, step: 'product' };
+    }
     return restored;
   } catch {
     return initialCheckoutState;

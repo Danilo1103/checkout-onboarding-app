@@ -74,18 +74,56 @@
   background: var(--color-bg);
 }
 
-.receipt > div {
+.product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px dashed var(--color-line);
+  text-align: left;
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 56px;
+  border-radius: var(--radius-sm);
+}
+
+.productInfo {
+  min-width: 0;
+}
+
+.productName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.productQty {
+  color: var(--color-ink-soft);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-top: var(--space-1);
+}
+
+.lines > div {
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
   font-size: 0.875rem;
 }
 
-.receipt dt {
+.lines dt {
   color: var(--color-ink-soft);
 }
 
-.receipt dd {
+.lines dd {
   margin: 0;
   font-weight: 600;
   overflow-wrap: anywhere;

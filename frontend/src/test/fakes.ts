@@ -45,6 +45,7 @@ export const fakeServices = (api: Partial<CheckoutApi> = {}): Services & { api: 
   } as jest.Mocked<CheckoutApi>,
   tokenizeCard: jest.fn().mockResolvedValue({ token: 'tok_1', brand: 'VISA', last4: '4242' }),
   wait: jest.fn().mockResolvedValue(undefined),
+  newId: jest.fn().mockReturnValue('0b6f4a1e-6a7c-4d2b-9a55-3f0f7c2d9e11'),
 });
 
 export const validCard = { number: '4242 4242 4242 4242', holder: 'Ana Gomez', expiry: '12/29', cvc: '123' };

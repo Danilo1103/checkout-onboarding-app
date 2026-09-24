@@ -25,7 +25,8 @@ export interface CustomerRepository {
 }
 
 export interface TransactionRepository {
-  create(transaction: Transaction): Promise<void>;
+  /** Stores a new transaction; returns false when the id already exists. */
+  create(transaction: Transaction): Promise<boolean>;
   findById(id: string): Promise<Transaction | null>;
   /** Stores the gateway id while the transaction is still PENDING. */
   attachGatewayId(
