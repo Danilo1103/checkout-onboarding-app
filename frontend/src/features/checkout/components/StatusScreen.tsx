@@ -30,10 +30,9 @@ export function StatusScreen({ onFinish }: StatusScreenProps) {
   const pending = !transaction || transaction.status === 'PENDING';
 
   useEffect(() => {
+    // The thunk keeps polling until a final status, so it starts once per payment.
     if (pending) void dispatch(pollTransaction(id));
-    // Poll once per transaction; the thunk keeps polling until a final status.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, id]);
+  }, [dispatch, id, pending]);
 
   if (!transaction && pollError) {
     return (

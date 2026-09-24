@@ -2,3 +2,12 @@ packages:
   - backend
   - frontend
   - infra
+
+# Native binaries needed by the toolchain (SWC for Jest, esbuild for bundling).
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@swc/core'
+  - esbuild
+  - unrs-resolver
+ignoredBuiltDependencies:
+  - '@scarf/scarf'

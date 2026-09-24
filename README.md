@@ -8,6 +8,7 @@ A customer picks a product, enters card and delivery data, reviews the summary, 
 | **Live app** | https://d1ua32kt9ebezp.cloudfront.net |
 | **API docs (Swagger)** | https://d1ua32kt9ebezp.cloudfront.net/api/docs |
 | **OpenAPI file (Postman importable)** | [`docs/openapi.json`](docs/openapi.json) |
+| **Package guides** | [`backend`](backend/README.md), [`frontend`](frontend/README.md), [`infra`](infra/README.md) |
 | **Plan and decisions** | [`docs/PLAN.md`](docs/PLAN.md), [`docs/decisions`](docs/decisions) (5 decision records) |
 
 Test cards (sandbox): `4242 4242 4242 4242` approved, `4111 1111 1111 1111` declined. Any future expiry date and a 3-digit CVC.
