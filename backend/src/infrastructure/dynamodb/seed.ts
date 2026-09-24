@@ -6,9 +6,9 @@ import { ProductItem } from './dynamo-product.repository';
 export const SEED_PRODUCTS: Product[] = [
   {
     id: 'prod-headphones',
-    name: 'Aurora Wireless Headphones',
+    name: 'Audífonos inalámbricos Aurora',
     description:
-      'Over-ear Bluetooth headphones with active noise cancelling and 30 hours of battery life.',
+      'Audífonos Bluetooth over-ear con cancelación activa de ruido y hasta 30 horas de batería.',
     imageUrl: '/images/headphones.webp',
     priceInCents: 34_990_000,
     stock: 12,
@@ -16,9 +16,9 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-smartwatch',
-    name: 'Pulse Smartwatch',
+    name: 'Reloj inteligente Pulse',
     description:
-      'Water-resistant smartwatch with heart-rate tracking, GPS and a 1.4" AMOLED display.',
+      'Resistente al agua, con monitor de ritmo cardíaco, GPS y pantalla AMOLED de 1.4 pulgadas.',
     imageUrl: '/images/smartwatch.webp',
     priceInCents: 52_900_000,
     stock: 6,
@@ -26,9 +26,9 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-keyboard',
-    name: 'Nimbus Mechanical Keyboard',
+    name: 'Teclado inalámbrico Nimbus',
     description:
-      'Compact 75% mechanical keyboard with hot-swappable switches and USB-C.',
+      'Teclado delgado de aluminio con conexión Bluetooth y batería recargable por USB-C.',
     imageUrl: '/images/keyboard.webp',
     priceInCents: 28_500_000,
     stock: 3,
