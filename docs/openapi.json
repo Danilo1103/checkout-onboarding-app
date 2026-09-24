@@ -1,0 +1,344 @@
+{
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/health": {
+            "get": {
+                "operationId": "HealthController_check",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Health"
+                ]
+            }
+        },
+        "/api/products": {
+            "get": {
+                "operationId": "ProductsController_list",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Products with the units available to buy"
+                    }
+                },
+                "tags": [
+                    "products"
+                ]
+            }
+        },
+        "/api/products/{id}": {
+            "get": {
+                "operationId": "ProductsController_get",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "products"
+                ]
+            }
+        },
+        "/api/checkout/quote": {
+            "get": {
+                "operationId": "CheckoutController_quote",
+                "parameters": [
+                    {
+                        "name": "productId",
+                        "required": true,
+                        "in": "query",
+                        "schema": {
+                            "example": "prod-headphones",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "required": true,
+                        "in": "query",
+                        "schema": {
+                            "example": 1,
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "checkout"
+                ]
+            }
+        },
+        "/api/checkout/acceptance": {
+            "get": {
+                "operationId": "CheckoutController_acceptance",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "checkout"
+                ]
+            }
+        },
+        "/api/customers": {
+            "post": {
+                "operationId": "CustomersController_upsert",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomerDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "customers"
+                ]
+            }
+        },
+        "/api/transactions": {
+            "post": {
+                "operationId": "TransactionsController_create",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTransactionDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "transactions"
+                ]
+            }
+        },
+        "/api/transactions/{id}": {
+            "get": {
+                "operationId": "TransactionsController_get",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "transactions"
+                ]
+            }
+        },
+        "/api/deliveries/{transactionId}": {
+            "get": {
+                "operationId": "DeliveriesController_get",
+                "parameters": [
+                    {
+                        "name": "transactionId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "deliveries"
+                ]
+            }
+        }
+    },
+    "info": {
+        "title": "Checkout API",
+        "description": "Products, checkout quotes, customers, transactions and deliveries",
+        "version": "1.0.0",
+        "contact": {}
+    },
+    "tags": [],
+    "servers": [],
+    "components": {
+        "schemas": {
+            "CustomerDto": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "example": "ana@example.com"
+                    },
+                    "fullName": {
+                        "type": "string",
+                        "example": "Ana Gomez"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "3001234567"
+                    }
+                },
+                "required": [
+                    "email",
+                    "fullName",
+                    "phone"
+                ]
+            },
+            "ShippingDto": {
+                "type": "object",
+                "properties": {
+                    "recipient": {
+                        "type": "string",
+                        "example": "Ana Gomez"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "3001234567"
+                    },
+                    "addressLine": {
+                        "type": "string",
+                        "example": "Calle 10 # 43-12"
+                    },
+                    "city": {
+                        "type": "string",
+                        "example": "Medellin"
+                    },
+                    "region": {
+                        "type": "string",
+                        "example": "Antioquia"
+                    },
+                    "postalCode": {
+                        "type": "string",
+                        "example": "050021"
+                    }
+                },
+                "required": [
+                    "recipient",
+                    "phone",
+                    "addressLine",
+                    "city",
+                    "region",
+                    "postalCode"
+                ]
+            },
+            "CardDto": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "Single-use token returned by the payment gateway tokenization endpoint"
+                    },
+                    "brand": {
+                        "type": "string",
+                        "enum": [
+                            "VISA",
+                            "MASTERCARD",
+                            "UNKNOWN"
+                        ]
+                    },
+                    "last4": {
+                        "type": "string",
+                        "example": "4242"
+                    },
+                    "installments": {
+                        "type": "number",
+                        "example": 1,
+                        "minimum": 1,
+                        "maximum": 36
+                    }
+                },
+                "required": [
+                    "token",
+                    "brand",
+                    "last4",
+                    "installments"
+                ]
+            },
+            "CreateTransactionDto": {
+                "type": "object",
+                "properties": {
+                    "productId": {
+                        "type": "string",
+                        "example": "prod-headphones"
+                    },
+                    "quantity": {
+                        "type": "number",
+                        "example": 1,
+                        "minimum": 1,
+                        "maximum": 5
+                    },
+                    "customer": {
+                        "$ref": "#/components/schemas/CustomerDto"
+                    },
+                    "shipping": {
+                        "$ref": "#/components/schemas/ShippingDto"
+                    },
+                    "card": {
+                        "$ref": "#/components/schemas/CardDto"
+                    },
+                    "acceptedTerms": {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Customer accepted the payment terms"
+                    },
+                    "acceptedPersonalData": {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Customer accepted the personal data policy"
+                    }
+                },
+                "required": [
+                    "productId",
+                    "quantity",
+                    "customer",
+                    "shipping",
+                    "card",
+                    "acceptedTerms",
+                    "acceptedPersonalData"
+                ]
+            }
+        }
+    }
+}
