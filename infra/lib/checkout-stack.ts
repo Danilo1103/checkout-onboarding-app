@@ -5,6 +5,10 @@ import {
   AllowedMethods,
   CachePolicy,
   Distribution,
+  Function as CloudFrontFunction,
+  FunctionCode,
+  FunctionEventType,
+  FunctionRuntime,
   HeadersFrameOption,
   HeadersReferrerPolicy,
   HttpVersion,
@@ -134,6 +138,15 @@ export class CheckoutStack extends Stack {
       },
     });
 
+    // SPA routing only for the web behavior: paths without a file extension serve index.html.
+    // (Distribution-level error responses would also rewrite real API 404s.)
+    const spaRouting = new CloudFrontFunction(this, 'SpaRouting', {
+      runtime: FunctionRuntime.JS_2_0,
+      code: FunctionCode.fromInline(
+        "function handler(event) { var request = event.request; if (request.uri.indexOf('.') === -1) { request.uri = '/index.html'; } return request; }",
+      ),
+    });
+
     // The API is served under /api on the same domain: no CORS and a strict CSP.
     const apiDomain = Fn.select(2, Fn.split('/', httpApi.apiEndpoint));
     const distribution = new Distribution(this, 'WebDistribution', {
@@ -146,6 +159,7 @@ export class CheckoutStack extends Stack {
         cachePolicy: CachePolicy.CACHING_OPTIMIZED,
         responseHeadersPolicy: securityHeaders,
         compress: true,
+        functionAssociations: [{ function: spaRouting, eventType: FunctionEventType.VIEWER_REQUEST }],
       },
       additionalBehaviors: {
         '/api/*': {
@@ -157,13 +171,6 @@ export class CheckoutStack extends Stack {
           responseHeadersPolicy: securityHeaders,
         },
       },
-      // Single page app: unknown paths serve index.html.
-      errorResponses: [403, 404].map((httpStatus) => ({
-        httpStatus,
-        responseHttpStatus: 200,
-        responsePagePath: '/index.html',
-        ttl: Duration.seconds(0),
-      })),
     });
 
     new BucketDeployment(this, 'WebStaticAssets', {

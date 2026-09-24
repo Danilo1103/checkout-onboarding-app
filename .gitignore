@@ -11,3 +11,4 @@ cdk.out/
 .idea/
 .vscode/
 dist-lambda/
+infra/cdk-outputs.json

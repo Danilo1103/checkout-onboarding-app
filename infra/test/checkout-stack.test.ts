@@ -74,7 +74,6 @@ describe('CheckoutStack', () => {
     template.hasResourceProperties('AWS::CloudFront::Distribution', {
       DistributionConfig: Match.objectLike({
         DefaultRootObject: 'index.html',
-        DefaultCacheBehavior: Match.objectLike({ ViewerProtocolPolicy: 'redirect-to-https' }),
         CacheBehaviors: [
           Match.objectLike({
             PathPattern: '/api/*',
@@ -82,8 +81,19 @@ describe('CheckoutStack', () => {
             CachePolicyId: '4135ea2d-6df8-44a3-9df3-4b5a84be39ad',
           }),
         ],
-        CustomErrorResponses: Match.arrayWith([Match.objectLike({ ErrorCode: 404, ResponseCode: 200 })]),
+        DefaultCacheBehavior: Match.objectLike({
+          ViewerProtocolPolicy: 'redirect-to-https',
+          FunctionAssociations: [Match.objectLike({ EventType: 'viewer-request' })],
+        }),
       }),
+    });
+  });
+
+  it('keeps real API errors: SPA routing applies only to the web behavior', () => {
+    const [distribution] = Object.values(template.findResources('AWS::CloudFront::Distribution'));
+    expect(distribution.Properties.DistributionConfig.CustomErrorResponses).toBeUndefined();
+    template.hasResourceProperties('AWS::CloudFront::Function', {
+      FunctionCode: Match.stringLikeRegexp("request.uri = '/index.html'"),
     });
   });
 
