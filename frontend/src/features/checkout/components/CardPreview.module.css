@@ -1,0 +1,58 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1.586 / 1;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #3a3f4b, #16181d);
+  box-shadow: 0 16px 32px rgb(22 24 29 / 24%);
+  transition: background 400ms ease;
+}
+
+.visa {
+  background: linear-gradient(135deg, #2b59ff, #1a1f71);
+}
+
+.mastercard {
+  background: linear-gradient(135deg, #ff7a18, #b3002d);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chip {
+  width: 40px;
+  height: 30px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f1d38a, #c9a24d);
+}
+
+.number {
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 5vw, 1.3rem);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.holder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
