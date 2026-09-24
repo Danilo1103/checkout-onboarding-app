@@ -4,13 +4,23 @@
  *        pnpm db:setup:local      -> create tables in DynamoDB Local and seed
  */
 import { CreateTableCommand, CreateTableCommandInput, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { loadConfig } from '../src/infrastructure/config/app-config';
+import { AppConfig } from '../src/infrastructure/config/app-config';
 import { createDynamoClient } from '../src/infrastructure/dynamodb/client';
 import { DELIVERY_BY_TRANSACTION_INDEX } from '../src/infrastructure/dynamodb/dynamo-delivery.repository';
 import { seedProducts } from '../src/infrastructure/dynamodb/seed';
 
-const config = loadConfig();
-const client = createDynamoClient(config);
+// Only table and connection settings are needed here, not the payment keys.
+const prefix = process.env.TABLE_PREFIX ?? 'checkout';
+const config = {
+  aws: { region: process.env.AWS_REGION ?? 'us-east-1', dynamoEndpoint: process.env.DYNAMODB_ENDPOINT || undefined },
+  tables: {
+    products: `${prefix}-products`,
+    customers: `${prefix}-customers`,
+    transactions: `${prefix}-transactions`,
+    deliveries: `${prefix}-deliveries`,
+  },
+} as Pick<AppConfig, 'aws' | 'tables'>;
+const client = createDynamoClient(config as AppConfig);
 
 const tables: CreateTableCommandInput[] = [
   { TableName: config.tables.products, KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }], AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }], BillingMode: 'PAY_PER_REQUEST' },
