@@ -154,7 +154,6 @@ const useCases: Provider[] = [
       TRANSACTION_REPOSITORY,
       PAYMENT_GATEWAY,
       SettleTransaction,
-      ID_GENERATOR,
       CLOCK,
     ],
     useFactory: (
@@ -164,7 +163,6 @@ const useCases: Provider[] = [
       transactions: TransactionRepository,
       gateway: PaymentGateway,
       settle: SettleTransaction,
-      ids: IdGenerator,
       clock: Clock,
     ) =>
       new CreateTransaction(
@@ -174,7 +172,6 @@ const useCases: Provider[] = [
         transactions,
         gateway,
         settle,
-        ids,
         clock,
       ),
   },

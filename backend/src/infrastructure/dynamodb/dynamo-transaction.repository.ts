@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { TransactionRepository } from '../../application/ports/repositories';
 import { Transaction } from '../../domain/transaction';
+import { isConditionalFailure } from './client';
 
 export class DynamoTransactionRepository implements TransactionRepository {
   constructor(
@@ -13,14 +14,20 @@ export class DynamoTransactionRepository implements TransactionRepository {
     private readonly table: string,
   ) {}
 
-  async create(transaction: Transaction): Promise<void> {
-    await this.client.send(
-      new PutCommand({
-        TableName: this.table,
-        Item: transaction,
-        ConditionExpression: 'attribute_not_exists(id)',
-      }),
-    );
+  async create(transaction: Transaction): Promise<boolean> {
+    try {
+      await this.client.send(
+        new PutCommand({
+          TableName: this.table,
+          Item: transaction,
+          ConditionExpression: 'attribute_not_exists(id)',
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (isConditionalFailure(error)) return false;
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<Transaction | null> {

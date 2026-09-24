@@ -183,8 +183,14 @@ describe('DynamoTransactionRepository', () => {
   const repo = new DynamoTransactionRepository(client, 'transactions');
 
   it('creates transactions only once', async () => {
-    ddb.on(PutCommand).resolves({});
-    await repo.create(aTransaction());
+    ddb
+      .on(PutCommand)
+      .resolvesOnce({})
+      .rejectsOnce(conditionalError())
+      .rejectsOnce(new Error('boom'));
+    expect(await repo.create(aTransaction())).toBe(true);
+    expect(await repo.create(aTransaction())).toBe(false);
+    await expect(repo.create(aTransaction())).rejects.toThrow('boom');
     expect(
       ddb.commandCalls(PutCommand)[0].args[0].input.ConditionExpression,
     ).toBe('attribute_not_exists(id)');

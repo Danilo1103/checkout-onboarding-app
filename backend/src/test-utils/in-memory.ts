@@ -107,8 +107,10 @@ export class InMemoryCustomers implements CustomerRepository {
 export class InMemoryTransactions implements TransactionRepository {
   constructor(private readonly db: InMemoryDb) {}
 
-  async create(transaction: Transaction): Promise<void> {
+  async create(transaction: Transaction): Promise<boolean> {
+    if (this.db.transactions.has(transaction.id)) return false;
     this.db.transactions.set(transaction.id, transaction);
+    return true;
   }
 
   async findById(id: string): Promise<Transaction | null> {
