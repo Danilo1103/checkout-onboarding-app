@@ -10,7 +10,7 @@ interface ModalProps {
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Accessible dialog: bottom sheet on phones, centered card on larger screens. */
+/** Accessible dialog: bottom sheet on phones, right side sheet on larger screens. */
 export function Modal({ title, onClose, children, footer }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   // Latest onClose without re-running the focus effect on every render.
