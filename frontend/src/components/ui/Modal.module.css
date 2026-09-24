@@ -59,17 +59,23 @@
   border-top: 1px solid var(--color-line);
 }
 
+/* Tablets and desktops: modal side sheet anchored to the right, full height. */
 @media (min-width: 640px) {
   .overlay {
-    align-items: center;
-    padding: var(--space-5);
+    justify-content: flex-end;
+    align-items: stretch;
+    background: rgb(22 24 29 / 55%);
+    backdrop-filter: blur(2px);
   }
 
   .dialog {
-    max-width: 520px;
-    max-height: 88dvh;
-    border-radius: var(--radius-lg);
-    animation-name: pop;
+    max-width: 480px;
+    max-height: none;
+    height: 100dvh;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    box-shadow: -16px 0 48px rgb(22 24 29 / 22%);
+    animation-name: slide-in;
+    animation-duration: 360ms;
   }
 }
 
@@ -86,9 +92,8 @@
   }
 }
 
-@keyframes pop {
+@keyframes slide-in {
   from {
-    transform: scale(0.96);
-    opacity: 0;
+    transform: translateX(100%);
   }
 }
