@@ -6,11 +6,13 @@
 Two customers could pay for the last unit at the same time. Decrementing stock only after approval could approve a payment for a product that is already gone.
 
 ## Decision
-When a transaction is created, reserve the units with a conditional update (`stock - reserved >= quantity`). When the payment reaches a final status:
+When a transaction is created, reserve the units with a conditional update. DynamoDB condition expressions cannot do arithmetic, so each product keeps an `available` attribute (`stock - reserved`) updated in the same write, and the condition is `available >= quantity`. When the payment reaches a final status:
 - **APPROVED:** decrement stock, clear the reservation and create the delivery, in one `TransactWriteItems` call.
 - **DECLINED / ERROR / VOIDED:** release the reservation.
 
 Finalization is idempotent: it only applies when the transaction moves out of `PENDING`.
+
+If storing the transaction fails right after the reservation, the units are released before the error is returned, so no stock is left reserved by a transaction that does not exist.
 
 ## Consequences
 - No overselling under concurrency.
