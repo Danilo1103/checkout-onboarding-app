@@ -79,7 +79,9 @@ describe('HTTP API', () => {
   afterEach(() => app.close());
 
   it('sends security headers', async () => {
-    const res = await request(app.getHttpServer()).get('/health').expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/api/health')
+      .expect(200);
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['strict-transport-security']).toBeDefined();
     expect(res.headers['x-powered-by']).toBeUndefined();
@@ -87,21 +89,21 @@ describe('HTTP API', () => {
 
   it('lists and gets products', async () => {
     const list = await request(app.getHttpServer())
-      .get('/products')
+      .get('/api/products')
       .expect(200);
     expect(list.body).toEqual([
       expect.objectContaining({ id: 'p-1', availableUnits: 10 }),
     ]);
-    await request(app.getHttpServer()).get('/products/p-1').expect(200);
+    await request(app.getHttpServer()).get('/api/products/p-1').expect(200);
     const missing = await request(app.getHttpServer())
-      .get('/products/nope')
+      .get('/api/products/nope')
       .expect(404);
     expect(missing.body).toMatchObject({ error: 'NOT_FOUND' });
   });
 
   it('quotes amounts on the server and validates the query', async () => {
     const quote = await request(app.getHttpServer())
-      .get('/checkout/quote?productId=p-1&quantity=2')
+      .get('/api/checkout/quote?productId=p-1&quantity=2')
       .expect(200);
     expect(quote.body.amounts).toEqual({
       productInCents: 50_000_000,
@@ -110,17 +112,17 @@ describe('HTTP API', () => {
       totalInCents: 51_500_000,
     });
     await request(app.getHttpServer())
-      .get('/checkout/quote?productId=p-1&quantity=0')
+      .get('/api/checkout/quote?productId=p-1&quantity=0')
       .expect(400);
     const noStock = await request(app.getHttpServer()).get(
-      '/checkout/quote?productId=p-1&quantity=5',
+      '/api/checkout/quote?productId=p-1&quantity=5',
     );
     expect(noStock.status).toBe(200);
   });
 
   it('exposes only the acceptance document links', async () => {
     const res = await request(app.getHttpServer())
-      .get('/checkout/acceptance')
+      .get('/api/checkout/acceptance')
       .expect(200);
     expect(res.body).toEqual({
       termsUrl: 'https://example.com/terms.pdf',
@@ -131,18 +133,18 @@ describe('HTTP API', () => {
   it('maps gateway failures to 502', async () => {
     gateway.acceptance = err(paymentGatewayError('down'));
     const res = await request(app.getHttpServer())
-      .get('/checkout/acceptance')
+      .get('/api/checkout/acceptance')
       .expect(502);
     expect(res.body).toMatchObject({ error: 'PAYMENT_GATEWAY' });
   });
 
   it('upserts customers and rejects unknown fields', async () => {
     await request(app.getHttpServer())
-      .post('/customers')
+      .post('/api/customers')
       .send(aCustomer())
       .expect(201);
     const res = await request(app.getHttpServer())
-      .post('/customers')
+      .post('/api/customers')
       .send({ ...aCustomer(), isAdmin: true })
       .expect(400);
     expect(JSON.stringify(res.body)).toContain(
@@ -152,7 +154,7 @@ describe('HTTP API', () => {
 
   it('runs the whole payment flow: create, poll until approved, get delivery', async () => {
     const created = await request(app.getHttpServer())
-      .post('/transactions')
+      .post('/api/transactions')
       .send(validBody())
       .expect(201);
     expect(created.body).toMatchObject({
@@ -163,12 +165,12 @@ describe('HTTP API', () => {
     expect(created.body).not.toHaveProperty('gatewayTransactionId');
 
     const polled = await request(app.getHttpServer())
-      .get(`/transactions/${created.body.id}`)
+      .get(`/api/transactions/${created.body.id}`)
       .expect(200);
     expect(polled.body.status).toBe('APPROVED');
 
     const delivery = await request(app.getHttpServer())
-      .get(`/deliveries/${created.body.id}`)
+      .get(`/api/deliveries/${created.body.id}`)
       .expect(200);
     expect(delivery.body).toMatchObject({
       transactionId: created.body.id,
@@ -176,19 +178,19 @@ describe('HTTP API', () => {
     });
 
     const products = await request(app.getHttpServer())
-      .get('/products')
+      .get('/api/products')
       .expect(200);
     expect(products.body[0].availableUnits).toBe(9);
   });
 
   it('returns 409 when stock is not enough and 400 for invalid payloads', async () => {
     await request(app.getHttpServer())
-      .post('/transactions')
+      .post('/api/transactions')
       .send({ ...validBody(), acceptedTerms: false })
       .expect(400);
     db.products.set('p-1', { ...db.products.get('p-1')!, reserved: 10 });
     const res = await request(app.getHttpServer())
-      .post('/transactions')
+      .post('/api/transactions')
       .send(validBody())
       .expect(409);
     expect(res.body).toMatchObject({ error: 'OUT_OF_STOCK' });
@@ -196,35 +198,37 @@ describe('HTTP API', () => {
 
   it('validates ids and reports unknown transactions and deliveries', async () => {
     await request(app.getHttpServer())
-      .get('/transactions/not-a-uuid')
+      .get('/api/transactions/not-a-uuid')
       .expect(400);
     const id = '6f1c2f5e-7c43-4a4e-9a3e-2f1d8f5f9a10';
-    await request(app.getHttpServer()).get(`/transactions/${id}`).expect(404);
-    await request(app.getHttpServer()).get(`/deliveries/${id}`).expect(404);
+    await request(app.getHttpServer())
+      .get(`/api/transactions/${id}`)
+      .expect(404);
+    await request(app.getHttpServer()).get(`/api/deliveries/${id}`).expect(404);
   });
 
   it('keeps the transaction pending while the gateway is still processing', async () => {
     gateway.statusResult = ok({ id: 'gw-1', status: 'PENDING' });
     const created = await request(app.getHttpServer())
-      .post('/transactions')
+      .post('/api/transactions')
       .send(validBody())
       .expect(201);
     const polled = await request(app.getHttpServer())
-      .get(`/transactions/${created.body.id}`)
+      .get(`/api/transactions/${created.body.id}`)
       .expect(200);
     expect(polled.body.status).toBe('PENDING');
   });
 
   it('serves the OpenAPI document', async () => {
     const res = await request(app.getHttpServer())
-      .get('/docs/json')
+      .get('/api/docs/json')
       .expect(200);
     expect(Object.keys(res.body.paths)).toEqual(
       expect.arrayContaining([
-        '/products',
-        '/checkout/quote',
-        '/transactions',
-        '/transactions/{id}',
+        '/api/products',
+        '/api/checkout/quote',
+        '/api/transactions',
+        '/api/transactions/{id}',
       ]),
     );
   });

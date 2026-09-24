@@ -10,3 +10,5 @@ cdk.out/
 .DS_Store
 .idea/
 .vscode/
+dist-lambda/
+infra/cdk-outputs.json
