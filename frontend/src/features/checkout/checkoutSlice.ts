@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CardSummary, LegalLinks, Quote, Transaction } from '../../api/types';
+import { ApiError } from '../../api/http';
 import type { Services } from '../../app/services';
 import type { CardInput } from '../../lib/card';
 import type { CustomerInput, ShippingInput } from '../../lib/delivery';
@@ -8,6 +9,8 @@ export type Step = 'product' | 'details' | 'summary' | 'status';
 
 export const POLL_INTERVAL_MS = 2_000;
 export const MAX_POLLS = 30;
+/** After a reload the create request may still be in flight; tolerate a few 404s. */
+export const MAX_NOT_FOUND = 5;
 
 export interface CheckoutState {
   step: Step;
@@ -23,6 +26,8 @@ export interface CheckoutState {
   legal: LegalLinks | null;
   quote: Quote | null;
   transaction: Transaction | null;
+  /** Idempotency key of the payment being processed; persisted to survive reloads. */
+  paymentId: string | null;
   status: 'idle' | 'loading' | 'failed';
   error: string | null;
   notice: string | null;
@@ -50,12 +55,18 @@ export const initialCheckoutState: CheckoutState = {
   legal: null,
   quote: null,
   transaction: null,
+  paymentId: null,
   status: 'idle',
   error: null,
   notice: null,
 };
 
-type ThunkConfig = { extra: Services; state: { checkout: CheckoutState }; rejectValue: string };
+type BaseThunkConfig = { extra: Services; state: { checkout: CheckoutState } };
+type ThunkConfig = BaseThunkConfig & { rejectValue: string };
+
+/** The payment may or may not exist when the request failed before a definitive answer. */
+const outcomeUnknown = (error: unknown) =>
+  !(error instanceof ApiError) || error.status === 0 || error.status >= 500;
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : 'Ocurrió un error inesperado');
 
@@ -87,37 +98,52 @@ export const loadSummary = createAsyncThunk<{ quote: Quote; legal: LegalLinks },
   },
 );
 
-export const pay = createAsyncThunk<Transaction, void, ThunkConfig>(
-  'checkout/pay',
-  async (_, { extra, getState, rejectWithValue }) => {
-    const state = getState().checkout;
-    try {
-      return await extra.api.createTransaction({
-        productId: state.productId!,
-        quantity: state.quantity,
-        customer: state.customer,
-        shipping: state.shipping,
-        card: { token: state.cardToken!, brand: state.card!.brand, last4: state.card!.last4, installments: 1 },
-        acceptedTerms: state.acceptedTerms,
-        acceptedPersonalData: state.acceptedTerms,
-      });
-    } catch (error) {
-      return rejectWithValue(messageOf(error));
-    }
-  },
-);
+export const pay = createAsyncThunk<
+  Transaction,
+  void,
+  BaseThunkConfig & { rejectValue: { message: string; outcomeUnknown: boolean } }
+>('checkout/pay', async (_, { extra, getState, dispatch, rejectWithValue }) => {
+  const state = getState().checkout;
+  // Reuse the key on retries so the backend never charges twice.
+  const paymentId = state.paymentId ?? extra.newId();
+  dispatch(paymentStarted(paymentId));
+  try {
+    return await extra.api.createTransaction({
+      idempotencyKey: paymentId,
+      productId: state.productId!,
+      quantity: state.quantity,
+      customer: state.customer,
+      shipping: state.shipping,
+      card: { token: state.cardToken!, brand: state.card!.brand, last4: state.card!.last4, installments: 1 },
+      acceptedTerms: state.acceptedTerms,
+      acceptedPersonalData: state.acceptedTerms,
+    });
+  } catch (error) {
+    return rejectWithValue({ message: messageOf(error), outcomeUnknown: outcomeUnknown(error) });
+  }
+});
 
 /** Polls the backend until the gateway reports a final status. Safe to resume after a refresh. */
 export const pollTransaction = createAsyncThunk<Transaction, string, ThunkConfig>(
   'checkout/pollTransaction',
   async (id, { extra, rejectWithValue }) => {
+    let notFound = 0;
     try {
-      let transaction = await extra.api.getTransaction(id);
-      for (let attempt = 1; transaction.status === 'PENDING' && attempt < MAX_POLLS; attempt += 1) {
+      for (let attempt = 1; ; attempt += 1) {
+        let transaction: Transaction | null = null;
+        try {
+          transaction = await extra.api.getTransaction(id);
+        } catch (error) {
+          const missing = error instanceof ApiError && error.status === 404;
+          if (!missing) throw error;
+          notFound += 1;
+          if (notFound >= MAX_NOT_FOUND) {
+            return rejectWithValue('No encontramos este pago, así que no se realizó ningún cobro.');
+          }
+        }
+        if (transaction && (transaction.status !== 'PENDING' || attempt >= MAX_POLLS)) return transaction;
         await extra.wait(POLL_INTERVAL_MS);
-        transaction = await extra.api.getTransaction(id);
       }
-      return transaction;
     } catch (error) {
       return rejectWithValue(messageOf(error));
     }
@@ -130,6 +156,7 @@ const checkoutSlice = createSlice({
   reducers: {
     startCheckout: (state, action: PayloadAction<{ productId: string; quantity: number }>) => {
       state.step = 'details';
+      state.paymentId = null;
       state.productId = action.payload.productId;
       state.quantity = action.payload.quantity;
       state.acceptedTerms = false;
@@ -148,6 +175,9 @@ const checkoutSlice = createSlice({
       state.card = null;
       state.error = null;
       state.notice = null;
+    },
+    paymentStarted: (state, action: PayloadAction<string>) => {
+      state.paymentId = action.payload;
     },
     setAcceptedTerms: (state, action: PayloadAction<boolean>) => {
       state.acceptedTerms = action.payload;
@@ -200,7 +230,12 @@ const checkoutSlice = createSlice({
       })
       .addCase(pay.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload ?? null;
+        state.error = action.payload?.message ?? null;
+        // A definitive rejection means no transaction was created: the next try gets a new key.
+        if (!action.payload?.outcomeUnknown) state.paymentId = null;
+      })
+      .addCase(pollTransaction.pending, (state) => {
+        state.error = null;
       })
       .addCase(pollTransaction.fulfilled, (state, { payload }) => {
         state.transaction = payload;
@@ -211,5 +246,6 @@ const checkoutSlice = createSlice({
   },
 });
 
-export const { startCheckout, editDetails, cancelCheckout, setAcceptedTerms, finishCheckout } = checkoutSlice.actions;
+export const { startCheckout, editDetails, cancelCheckout, paymentStarted, setAcceptedTerms, finishCheckout } =
+  checkoutSlice.actions;
 export default checkoutSlice.reducer;

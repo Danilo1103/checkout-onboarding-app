@@ -51,6 +51,7 @@ export interface CardSummary {
 }
 
 export interface CreateTransactionRequest {
+  idempotencyKey: string;
   productId: string;
   quantity: number;
   customer: CustomerInput;
