@@ -10,6 +10,7 @@ module.exports = {
     ],
   },
   moduleNameMapper: {
+    '^(\\.{1,2}/)+env$': '<rootDir>/src/test/env.ts',
     '\\.(css)$': 'identity-obj-proxy',
     '\\.(svg|png|jpg|jpeg|webp)$': '<rootDir>/src/test/fileMock.ts',
   },

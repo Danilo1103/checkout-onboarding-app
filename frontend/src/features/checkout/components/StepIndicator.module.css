@@ -1,0 +1,44 @@
+.steps {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+}
+
+.steps li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-line);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.current {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.current .dot {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.done .dot {
+  background: var(--color-success);
+  color: #fff;
+}
