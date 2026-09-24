@@ -51,7 +51,7 @@ export function StatusScreen({ onFinish }: StatusScreenProps) {
   return (
     <section className={styles.screen} aria-live="polite">
       <div className={styles.panel}>
-        <StepIndicator current={3} />
+        <StepIndicator current={3} outcome={transaction.status === 'APPROVED' ? 'success' : 'failed'} />
         <span className={[styles.icon, copy.tone].join(' ')} aria-hidden="true">
           {copy.icon}
         </span>

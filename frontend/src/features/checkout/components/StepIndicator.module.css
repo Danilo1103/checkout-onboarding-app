@@ -1,44 +1,114 @@
 .steps {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
+  --dot: 28px;
+  --line: 2px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   margin: 0 0 var(--space-5);
   padding: 0;
   list-style: none;
-  font-size: 0.8125rem;
-  color: var(--color-ink-soft);
 }
 
-.steps li {
+.step {
+  position: relative;
   display: flex;
-  flex: 1;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Connector drawn from the previous dot to this one. */
+.step:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--dot) / 2 - var(--line) / 2);
+  right: calc(50% + var(--dot) / 2 + 6px);
+  left: calc(-50% + var(--dot) / 2 + 6px);
+  height: var(--line);
+  border-radius: var(--line);
+  background: var(--color-line);
+  transition: background-color 300ms ease;
 }
 
 .dot {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: var(--dot);
+  height: var(--dot);
   border-radius: 50%;
-  background: var(--color-line);
-  font-size: 0.75rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-line);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
   font-weight: 700;
+  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
 }
 
-.current {
+.label {
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.current .dot {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
+}
+
+.current .label {
   color: var(--color-ink);
   font-weight: 600;
 }
 
-.current .dot {
-  background: var(--color-accent);
-  color: var(--color-accent-ink);
-}
-
 .done .dot {
+  border-color: var(--color-success);
   background: var(--color-success);
   color: #fff;
+}
+
+.done .label {
+  color: var(--color-ink);
+}
+
+.failed .dot {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.failed .label {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* A connector is "reached" when the step it leads to is done, current or failed. */
+.done:not(:first-child)::before {
+  background: var(--color-success);
+}
+
+.current:not(:first-child)::before,
+.failed:not(:first-child)::before {
+  background: linear-gradient(90deg, var(--color-success), var(--color-accent));
+}
+
+.failed:not(:first-child)::before {
+  background: linear-gradient(90deg, var(--color-success), var(--color-danger));
+}
+
+.done .dot svg,
+.failed .dot svg {
+  animation: pop 320ms var(--ease-out);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
 }
