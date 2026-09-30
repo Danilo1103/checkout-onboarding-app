@@ -13,7 +13,11 @@ import { GetProduct } from './get-product';
 import { ListProducts } from './list-products';
 import { UpsertCustomer } from './upsert-customer';
 
-const fees = { baseFeeInCents: 500_000, deliveryFeeInCents: 1_000_000 };
+const fees = {
+  baseFeeInCents: 500_000,
+  deliveryFeeInCents: 1_000_000,
+  vatRatePercent: 19,
+};
 
 describe('catalog and checkout queries', () => {
   let db: InMemoryDb;
@@ -52,7 +56,11 @@ describe('catalog and checkout queries', () => {
         ok: true,
         value: {
           currency: 'COP',
-          amounts: { productInCents: 50_000_000, totalInCents: 51_500_000 },
+          amounts: {
+            productInCents: 50_000_000,
+            vatInCents: 9_500_000,
+            totalInCents: 61_000_000,
+          },
         },
       });
     });

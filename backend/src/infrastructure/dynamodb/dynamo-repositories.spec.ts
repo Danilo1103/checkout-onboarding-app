@@ -48,9 +48,10 @@ const aTransaction = (overrides: Partial<Transaction> = {}): Transaction => ({
   customerEmail: 'ana@example.com',
   amounts: {
     productInCents: 100,
+    vatInCents: 19,
     baseFeeInCents: 10,
     deliveryFeeInCents: 20,
-    totalInCents: 130,
+    totalInCents: 149,
   },
   currency: 'COP',
   status: 'APPROVED',
@@ -194,6 +195,14 @@ describe('DynamoTransactionRepository', () => {
     expect(
       ddb.commandCalls(PutCommand)[0].args[0].input.ConditionExpression,
     ).toBe('attribute_not_exists(id)');
+  });
+
+  it('persists the VAT breakdown with the transaction', async () => {
+    ddb.on(PutCommand).resolves({});
+    await repo.create(aTransaction());
+    expect(
+      ddb.commandCalls(PutCommand)[0].args[0].input.Item?.amounts,
+    ).toMatchObject({ vatInCents: 19, totalInCents: 149 });
   });
 
   it('finds transactions and attaches the gateway id', async () => {

@@ -18,6 +18,7 @@ export interface AppConfig {
   readonly fees: {
     readonly baseFeeInCents: number;
     readonly deliveryFeeInCents: number;
+    readonly vatRatePercent: number;
   };
 }
 
@@ -68,6 +69,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AppConfig => {
     fees: {
       baseFeeInCents: toInt(env.BASE_FEE_IN_CENTS, 500_000),
       deliveryFeeInCents: toInt(env.DELIVERY_FEE_IN_CENTS, 1_000_000),
+      vatRatePercent: toInt(env.VAT_RATE_PERCENT, 19),
     },
   };
 };

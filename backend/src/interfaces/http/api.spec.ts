@@ -109,9 +109,10 @@ describe('HTTP API', () => {
       .expect(200);
     expect(quote.body.amounts).toEqual({
       productInCents: 50_000_000,
+      vatInCents: 9_500_000,
       baseFeeInCents: 500_000,
       deliveryFeeInCents: 1_000_000,
-      totalInCents: 51_500_000,
+      totalInCents: 61_000_000,
     });
     await request(app.getHttpServer())
       .get('/api/checkout/quote?productId=p-1&quantity=0')

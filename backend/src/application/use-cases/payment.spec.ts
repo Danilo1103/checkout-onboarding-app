@@ -21,7 +21,11 @@ import { SettleTransaction } from './settle-transaction';
 import { SyncTransaction } from './sync-transaction';
 import { UpsertCustomer } from './upsert-customer';
 
-const fees = { baseFeeInCents: 500_000, deliveryFeeInCents: 1_000_000 };
+const fees = {
+  baseFeeInCents: 500_000,
+  deliveryFeeInCents: 1_000_000,
+  vatRatePercent: 19,
+};
 
 const KEY = '0b6f4a1e-6a7c-4d2b-9a55-3f0f7c2d9e11';
 
@@ -91,7 +95,7 @@ describe('payment flow', () => {
       expect(product()).toMatchObject({ stock: 10, reserved: 2 });
       expect(gateway.charges[0]).toMatchObject({
         reference: `TX-${KEY}`,
-        amountInCents: 51_500_000,
+        amountInCents: 61_000_000,
         currency: 'COP',
         cardToken: 'tok_test_123',
         customerEmail: 'ana@example.com',
