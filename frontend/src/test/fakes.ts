@@ -16,7 +16,13 @@ export const aQuote = (overrides: Partial<Quote> = {}): Quote => ({
   productId: 'prod-headphones',
   quantity: 1,
   currency: 'COP',
-  amounts: { productInCents: 34_990_000, baseFeeInCents: 500_000, deliveryFeeInCents: 1_000_000, totalInCents: 36_490_000 },
+  amounts: {
+    productInCents: 34_990_000,
+    vatInCents: 6_648_100,
+    baseFeeInCents: 500_000,
+    deliveryFeeInCents: 1_000_000,
+    totalInCents: 43_138_100,
+  },
   ...overrides,
 });
 
