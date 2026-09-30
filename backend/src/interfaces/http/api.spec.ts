@@ -249,5 +249,13 @@ describe('HTTP API', () => {
         '/api/transactions/{id}',
       ]),
     );
+    expect(res.body.components.schemas.AmountsDto.required).toEqual(
+      expect.arrayContaining(['vatInCents', 'totalInCents']),
+    );
+    expect(
+      res.body.paths['/api/checkout/quote'].get.responses['200'].content[
+        'application/json'
+      ].schema,
+    ).toEqual({ $ref: '#/components/schemas/QuoteResponseDto' });
   });
 });
