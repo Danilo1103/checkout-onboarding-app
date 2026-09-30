@@ -23,7 +23,7 @@ Test cards (sandbox): `4242 4242 4242 4242` approved, `4111 1111 1111 1111` decl
 
 1. **Product page** – products with description, price and available units.
 2. **Pay with credit card** – a modal (side sheet on desktop, bottom sheet on phones) collects card and delivery data. The card number is validated with Luhn, VISA and Mastercard are detected with their logos, and the expiry and CVC are checked.
-3. **Summary** – a Material backdrop shows product amount, base fee, delivery fee and total. Amounts are always computed by the backend.
+3. **Summary** – a Material backdrop shows product amount, VAT (19% on the product only), base fee, delivery fee and total. Amounts are always computed by the backend.
 4. **Payment** – the backend reserves stock, creates the transaction as `PENDING`, charges the card through the gateway and polls until a final status. Approved payments consume the stock and assign the delivery; declined or failed payments release it.
 5. **Final status** – approved, declined or error, with the purchased product, quantity and total, then back to the product page with fresh stock.
 
@@ -112,7 +112,7 @@ Validation rejects unknown fields (`whitelist` + `forbidNonWhitelisted`), wrong 
 |---|---|---|
 | `checkout-products` | `id` | name, description, imageUrl, priceInCents, stock, reserved, available |
 | `checkout-customers` | `email` | fullName, phone, createdAt, updatedAt |
-| `checkout-transactions` | `id` | reference, productId, quantity, customerEmail, amounts (product, base fee, delivery fee, total), currency, status, gatewayTransactionId, cardBrand, cardLast4, shipping, createdAt, updatedAt |
+| `checkout-transactions` | `id` | reference, productId, quantity, customerEmail, amounts (product, VAT, base fee, delivery fee, total), currency, status, gatewayTransactionId, cardBrand, cardLast4, shipping, createdAt, updatedAt |
 | `checkout-deliveries` | `id` + GSI `transactionId-index` | transactionId, productId, quantity, recipient, phone, addressLine, city, region, postalCode, status |
 
 **Stock consistency** – `available = stock - reserved` is stored because DynamoDB conditions cannot do arithmetic.

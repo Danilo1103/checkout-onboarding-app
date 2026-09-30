@@ -25,7 +25,11 @@ describe('loadConfig', () => {
         deliveries: 'checkout-deliveries',
       },
       payment: { apiUrl: 'https://gateway.test/v1', timeoutMs: 10000 },
-      fees: { baseFeeInCents: 500000, deliveryFeeInCents: 1000000 },
+      fees: {
+        baseFeeInCents: 500000,
+        deliveryFeeInCents: 1000000,
+        vatRatePercent: 19,
+      },
     });
   });
 
@@ -39,13 +43,18 @@ describe('loadConfig', () => {
       TABLE_PREFIX: 'prod',
       BASE_FEE_IN_CENTS: '100',
       DELIVERY_FEE_IN_CENTS: 'abc',
+      VAT_RATE_PERCENT: '5',
     });
     expect(config).toMatchObject({
       port: 4000,
       corsOrigins: ['https://a.test', 'https://b.test'],
       aws: { region: 'us-west-2', dynamoEndpoint: 'http://localhost:8000' },
       tables: { transactions: 'prod-transactions' },
-      fees: { baseFeeInCents: 100, deliveryFeeInCents: 1000000 },
+      fees: {
+        baseFeeInCents: 100,
+        deliveryFeeInCents: 1000000,
+        vatRatePercent: 5,
+      },
     });
   });
 });

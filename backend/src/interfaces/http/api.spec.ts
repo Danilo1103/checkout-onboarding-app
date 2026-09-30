@@ -109,9 +109,10 @@ describe('HTTP API', () => {
       .expect(200);
     expect(quote.body.amounts).toEqual({
       productInCents: 50_000_000,
+      vatInCents: 9_500_000,
       baseFeeInCents: 500_000,
       deliveryFeeInCents: 1_000_000,
-      totalInCents: 51_500_000,
+      totalInCents: 61_000_000,
     });
     await request(app.getHttpServer())
       .get('/api/checkout/quote?productId=p-1&quantity=0')
@@ -248,5 +249,13 @@ describe('HTTP API', () => {
         '/api/transactions/{id}',
       ]),
     );
+    expect(res.body.components.schemas.AmountsDto.required).toEqual(
+      expect.arrayContaining(['vatInCents', 'totalInCents']),
+    );
+    expect(
+      res.body.paths['/api/checkout/quote'].get.responses['200'].content[
+        'application/json'
+      ].schema,
+    ).toEqual({ $ref: '#/components/schemas/QuoteResponseDto' });
   });
 });

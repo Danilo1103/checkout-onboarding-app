@@ -17,9 +17,12 @@ const summary = {
 describe('SummaryBackdrop', () => {
   it('shows skeletons, then the server amounts, card and address', async () => {
     renderWithStore(<SummaryBackdrop />, { checkout: summary });
-    expect(screen.getAllByTestId('summary-skeleton')).toHaveLength(4);
+    expect(screen.getAllByTestId('summary-skeleton')).toHaveLength(5);
     expect(await screen.findByText('Tarifa base')).toBeInTheDocument();
-    expect(screen.getByText(/364\.900/, { selector: 'dd' })).toBeInTheDocument();
+    expect(screen.getByText('IVA (producto)')).toBeInTheDocument();
+    expect(screen.getByText(/66\.481/, { selector: 'dd' })).toBeInTheDocument();
+    expect(screen.getByText(/431\.381/, { selector: 'dd' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pagar \$\s?431\.381/ })).toBeInTheDocument();
     expect(screen.getByText('Tarjeta terminada en 4242')).toBeInTheDocument();
     expect(screen.getByText('Calle 10 # 43-12, Medellín')).toBeInTheDocument();
     expect(screen.getByText('1 × Aurora Wireless Headphones')).toBeInTheDocument();

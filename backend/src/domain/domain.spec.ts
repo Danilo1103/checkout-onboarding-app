@@ -1,4 +1,4 @@
-import { calculateAmounts } from './pricing';
+import { calculateAmounts, calculateVat } from './pricing';
 import { availableUnits } from './product';
 import { isFinal } from './transaction';
 import {
@@ -11,18 +11,35 @@ import {
 import { aProduct, aShipping } from '../test-utils/in-memory';
 
 describe('domain', () => {
-  it('calculates amounts in cents including fees', () => {
+  it('calculates amounts in cents including VAT and fees', () => {
     expect(
       calculateAmounts(10_000, 2, {
         baseFeeInCents: 500,
         deliveryFeeInCents: 1_000,
+        vatRatePercent: 19,
       }),
     ).toEqual({
       productInCents: 20_000,
+      vatInCents: 3_800,
       baseFeeInCents: 500,
       deliveryFeeInCents: 1_000,
-      totalInCents: 21_500,
+      totalInCents: 25_300,
     });
+  });
+
+  it('applies VAT to the product only, never to the fees', () => {
+    const amounts = calculateAmounts(34_990_000, 1, {
+      baseFeeInCents: 500_000,
+      deliveryFeeInCents: 1_000_000,
+      vatRatePercent: 19,
+    });
+    expect(amounts.vatInCents).toBe(6_648_100);
+    expect(amounts.totalInCents).toBe(43_138_100);
+  });
+
+  it('rounds VAT to whole cents and supports a zero rate', () => {
+    expect(calculateVat(333, 19)).toBe(63);
+    expect(calculateVat(20_000, 0)).toBe(0);
   });
 
   it('computes available units and never returns negative values', () => {

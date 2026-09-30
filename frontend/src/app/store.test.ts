@@ -76,7 +76,7 @@ describe('checkout flow', () => {
     await store.dispatch(loadSummary());
 
     expect(services.api.getQuote).toHaveBeenCalledWith('prod-headphones', 2);
-    expect(store.getState().checkout.quote?.amounts.totalInCents).toBe(36_490_000);
+    expect(store.getState().checkout.quote?.amounts.totalInCents).toBe(43_138_100);
     expect(store.getState().checkout.legal?.termsUrl).toBe('https://terms.test');
   });
 

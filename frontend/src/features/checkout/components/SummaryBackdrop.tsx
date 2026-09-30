@@ -56,6 +56,10 @@ export function SummaryBackdrop() {
                 <dd>{formatCOP(quote.amounts.productInCents)}</dd>
               </div>
               <div>
+                <dt>IVA (producto)</dt>
+                <dd>{formatCOP(quote.amounts.vatInCents)}</dd>
+              </div>
+              <div>
                 <dt>Tarifa base</dt>
                 <dd>{formatCOP(quote.amounts.baseFeeInCents)}</dd>
               </div>
@@ -69,7 +73,7 @@ export function SummaryBackdrop() {
               </div>
             </>
           ) : (
-            [0, 1, 2, 3].map((key) => (
+            [0, 1, 2, 3, 4].map((key) => (
               <div key={key} data-testid="summary-skeleton">
                 <Skeleton width="40%" />
                 <Skeleton width="25%" />

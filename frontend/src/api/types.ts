@@ -12,6 +12,7 @@ export interface Product {
 
 export interface Amounts {
   productInCents: number;
+  vatInCents: number;
   baseFeeInCents: number;
   deliveryFeeInCents: number;
   totalInCents: number;
